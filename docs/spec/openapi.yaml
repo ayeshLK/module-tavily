@@ -1,0 +1,1258 @@
+openapi: 3.1.0
+info:
+  title: Tavily API
+  version: 1.0.0
+  description: |
+    Tavily is a search engine built for AI agents and LLMs. This OpenAPI
+    specification covers the Tavily REST API, including web search, content
+    extraction, site crawling, site mapping, deep research, and usage tracking.
+
+    ## Authentication
+    All endpoints require a Tavily API key supplied as a bearer token:
+
+    ```
+    Authorization: Bearer tvly-YOUR_API_KEY
+    ```
+
+    Get a free API key from the [Tavily platform](https://app.tavily.com).
+
+    ## Optional tracking headers
+    Most endpoints accept optional headers to organize and analyze requests:
+    `X-Project-ID`, `X-Session-Id`, and `X-Human-Id`.
+  contact:
+    name: Tavily Support
+    url: https://docs.tavily.com
+  license:
+    name: Proprietary
+    url: https://tavily.com
+
+servers:
+  - url: https://api.tavily.com
+    description: Tavily production API
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Search
+    description: Web search built for AI agents.
+  - name: Extract
+    description: Extract clean content from web pages.
+  - name: Crawl
+    description: Crawl a site graph and extract content.
+  - name: Map
+    description: Discover the structure of a site.
+  - name: Research
+    description: Run in-depth, agentic research tasks.
+  - name: Usage
+    description: Track API key and account usage.
+
+paths:
+  /search:
+    post:
+      tags: [Search]
+      operationId: search
+      summary: Search the web
+      description: Execute a web search optimized for AI agents and LLMs.
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdHeader'
+        - $ref: '#/components/parameters/SessionIdHeader'
+        - $ref: '#/components/parameters/HumanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+            examples:
+              basic:
+                summary: Simple search with an LLM answer
+                value:
+                  query: "Who is Leo Messi?"
+                  search_depth: basic
+                  max_results: 5
+                  include_answer: true
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              examples:
+                basic:
+                  value:
+                    query: "Who is Leo Messi?"
+                    answer: "Lionel Messi, born in 1987, is an Argentine footballer widely regarded as one of the greatest of all time."
+                    images: []
+                    results:
+                      - title: "Lionel Messi Facts | Britannica"
+                        url: "https://www.britannica.com/facts/Lionel-Messi"
+                        content: "Lionel Messi, an Argentine footballer, is widely regarded as one of the greatest..."
+                        score: 0.81025416
+                        favicon: "https://britannica.com/favicon.png"
+                    response_time: 1.67
+                    request_id: "123e4567-e89b-12d3-a456-426614174111"
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '432': { $ref: '#/components/responses/PlanLimitExceeded' }
+        '433': { $ref: '#/components/responses/PayGoLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /extract:
+    post:
+      tags: [Extract]
+      operationId: extract
+      summary: Extract content from URLs
+      description: Extract clean, LLM-ready content from one or more web pages.
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdHeader'
+        - $ref: '#/components/parameters/SessionIdHeader'
+        - $ref: '#/components/parameters/HumanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtractRequest'
+            examples:
+              single:
+                summary: Extract a single URL
+                value:
+                  urls: "https://en.wikipedia.org/wiki/Artificial_intelligence"
+                  extract_depth: basic
+                  format: markdown
+      responses:
+        '200':
+          description: Extraction results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '432': { $ref: '#/components/responses/PlanLimitExceeded' }
+        '433': { $ref: '#/components/responses/PayGoLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /crawl:
+    post:
+      tags: [Crawl]
+      operationId: crawl
+      summary: Crawl a website
+      description: |
+        Crawl a site starting from a root URL, following links across the site
+        graph and extracting content from each page.
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdHeader'
+        - $ref: '#/components/parameters/SessionIdHeader'
+        - $ref: '#/components/parameters/HumanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrawlRequest'
+            examples:
+              guided:
+                summary: Crawl with natural-language instructions
+                value:
+                  url: "https://docs.tavily.com"
+                  instructions: "Find all pages on the Python SDK"
+      responses:
+        '200':
+          description: Crawl results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrawlResponse'
+              examples:
+                basic:
+                  value:
+                    base_url: "docs.tavily.com"
+                    results:
+                      - url: "https://docs.tavily.com/welcome"
+                        raw_content: "Welcome - Tavily Docs\n\nExplore our docs..."
+                        favicon: "https://mintlify.s3-us-west-1.amazonaws.com/tavilyai/_generated/favicon/apple-touch-icon.png?v=3"
+                    response_time: 1.23
+                    usage:
+                      credits: 1
+                    request_id: "123e4567-e89b-12d3-a456-426614174111"
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '432': { $ref: '#/components/responses/PlanLimitExceeded' }
+        '433': { $ref: '#/components/responses/PayGoLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /map:
+    post:
+      tags: [Map]
+      operationId: map
+      summary: Map a website
+      description: |
+        Discover the structure of a site by traversing its links starting from a
+        root URL. Returns the list of URLs found without extracting page content.
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdHeader'
+        - $ref: '#/components/parameters/SessionIdHeader'
+        - $ref: '#/components/parameters/HumanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapRequest'
+            examples:
+              basic:
+                value:
+                  url: "https://docs.tavily.com"
+                  max_depth: 2
+      responses:
+        '200':
+          description: Map results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MapResponse'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '432': { $ref: '#/components/responses/PlanLimitExceeded' }
+        '433': { $ref: '#/components/responses/PayGoLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /research:
+    post:
+      tags: [Research]
+      operationId: createResearch
+      summary: Create a research task
+      description: |
+        Start an in-depth, agentic research task. The task runs asynchronously;
+        the initial response returns a `request_id` and a `pending` status. Poll
+        `GET /research/{request_id}` to retrieve the completed report, or set
+        `stream: true` to receive results as a Server-Sent Events (SSE) stream.
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdHeader'
+        - $ref: '#/components/parameters/SessionIdHeader'
+        - $ref: '#/components/parameters/HumanIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResearchRequest'
+            examples:
+              basic:
+                value:
+                  input: "What are the latest developments in AI?"
+                  model: mini
+                  citation_format: apa
+      responses:
+        '201':
+          description: Research task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchTaskCreated'
+              examples:
+                pending:
+                  value:
+                    request_id: "123e4567-e89b-12d3-a456-426614174111"
+                    created_at: "2025-01-15T10:30:00Z"
+                    status: pending
+                    input: "What are the latest developments in AI?"
+                    model: mini
+                    response_time: 1.23
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Server-Sent Events stream of research progress and results,
+                  returned when `stream` is `true`.
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '432': { $ref: '#/components/responses/PlanLimitExceeded' }
+        '433': { $ref: '#/components/responses/PayGoLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /research/{request_id}:
+    get:
+      tags: [Research]
+      operationId: getResearch
+      summary: Get research task status and results
+      description: |
+        Retrieve the status of a research task. While the task is running the
+        endpoint responds with `202` and a `pending`/`in_progress` status. Once
+        finished it responds with `200` and either the completed report or a
+        failure status.
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          description: The unique identifier of the research task.
+          schema:
+            type: string
+          example: "123e4567-e89b-12d3-a456-426614174111"
+      responses:
+        '200':
+          description: Task completed or failed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ResearchTaskCompleted'
+                  - $ref: '#/components/schemas/ResearchTaskFailed'
+                discriminator:
+                  propertyName: status
+              examples:
+                completed:
+                  value:
+                    request_id: "123e4567-e89b-12d3-a456-426614174111"
+                    created_at: "2025-01-15T10:30:00Z"
+                    status: completed
+                    content: "Recent AI developments include..."
+                    sources:
+                      - title: "State of AI Report"
+                        url: "https://www.stateof.ai"
+                        favicon: "https://www.stateof.ai/favicon.ico"
+                    response_time: 42
+        '202':
+          description: Task pending or in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchTaskPending'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+  /usage:
+    get:
+      tags: [Usage]
+      operationId: getUsage
+      summary: Get usage information
+      description: Retrieve credit usage and limits for the API key and account.
+      parameters:
+        - $ref: '#/components/parameters/ProjectIdHeader'
+      responses:
+        '200':
+          description: Usage information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 'Tavily API key supplied as a bearer token in the form `tvly-YOUR_API_KEY`.'
+
+  parameters:
+    ProjectIdHeader:
+      name: X-Project-ID
+      in: header
+      required: false
+      description: Optional project ID to scope the request to a specific project.
+      schema:
+        type: string
+    SessionIdHeader:
+      name: X-Session-Id
+      in: header
+      required: false
+      description: Optional session identifier for grouping related requests in analytics.
+      schema:
+        type: string
+    HumanIdHeader:
+      name: X-Human-Id
+      in: header
+      required: false
+      description: Optional identifier for the end user driving the request.
+      schema:
+        type: string
+
+  schemas:
+    # ----------------------------- Search -----------------------------
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: The search query to execute.
+        search_depth:
+          type: string
+          enum: [basic, advanced, fast, ultra-fast]
+          default: basic
+          description: |
+            Controls the trade-off between latency and relevance. `advanced`
+            costs 2 credits; `basic`, `fast`, and `ultra-fast` cost 1 credit.
+        chunks_per_source:
+          type: integer
+          minimum: 1
+          maximum: 3
+          default: 3
+          description: >-
+            Maximum number of relevant content chunks returned per source.
+            Available only when `search_depth` is `advanced`.
+        max_results:
+          type: integer
+          minimum: 0
+          maximum: 20
+          default: 5
+          description: Maximum number of search results to return.
+        topic:
+          type: string
+          enum: [general, news]
+          default: general
+          description: The category of the search.
+        time_range:
+          type: [string, "null"]
+          enum: [day, week, month, year, d, w, m, y, null]
+          default: null
+          description: Filter results by a relative time range from the current date.
+        start_date:
+          type: [string, "null"]
+          format: date
+          default: null
+          description: Return results published after this date (YYYY-MM-DD).
+        end_date:
+          type: [string, "null"]
+          format: date
+          default: null
+          description: Return results published before this date (YYYY-MM-DD).
+        include_answer:
+          default: false
+          description: >-
+            Include an LLM-generated answer. `true`/`basic` returns a quick
+            answer; `advanced` returns a more detailed answer.
+          anyOf:
+            - type: boolean
+            - type: string
+              enum: [basic, advanced]
+        include_raw_content:
+          default: false
+          description: >-
+            Include the cleaned page content for each result. `true`/`markdown`
+            returns markdown; `text` returns plain text.
+          anyOf:
+            - type: boolean
+            - type: string
+              enum: [markdown, text]
+        include_images:
+          type: boolean
+          default: false
+          description: Include a list of query-related images in the response.
+        include_image_descriptions:
+          type: boolean
+          default: false
+          description: 'Add descriptive text for each image. Requires `include_images: true`.'
+        include_favicon:
+          type: boolean
+          default: false
+          description: Include the favicon URL for each result.
+        include_domains:
+          type: array
+          maxItems: 300
+          default: []
+          items:
+            type: string
+          description: A list of domains to specifically include in the results.
+        exclude_domains:
+          type: array
+          maxItems: 150
+          default: []
+          items:
+            type: string
+          description: A list of domains to specifically exclude from the results.
+        country:
+          type: [string, "null"]
+          default: null
+          description: >-
+            Boost results from a specific country. Only available with the
+            `general` topic.
+        auto_parameters:
+          type: boolean
+          default: false
+          description: >-
+            Automatically configure search parameters based on the query intent.
+            Costs 2 credits.
+        exact_match:
+          type: boolean
+          default: false
+          description: Return only results matching exact quoted phrases in the query.
+        include_usage:
+          type: boolean
+          default: false
+          description: Include credit usage information in the response.
+        safe_search:
+          type: boolean
+          default: false
+          description: >-
+            Filter out adult or unsafe content. Enterprise only; not available
+            with `fast` or `ultra-fast` search depth.
+
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The executed search query.
+        answer:
+          type: string
+          description: The LLM-generated answer, if `include_answer` was requested.
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchImage'
+          description: Query-related images, if `include_images` was requested.
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+          description: Ranked search results.
+        auto_parameters:
+          type: object
+          additionalProperties: true
+          description: The parameters selected automatically, if `auto_parameters` was enabled.
+        response_time:
+          type: number
+          format: float
+          description: Time in seconds it took to complete the request.
+        usage:
+          $ref: '#/components/schemas/Usage'
+        request_id:
+          type: string
+          description: A unique request identifier you can share with customer support.
+
+    SearchImage:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The image URL.
+        description:
+          type: string
+          description: Descriptive text, if `include_image_descriptions` was requested.
+
+    SearchResult:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The title of the result.
+        url:
+          type: string
+          format: uri
+          description: The URL of the result.
+        content:
+          type: string
+          description: A short description of the result relevant to the query.
+        score:
+          type: number
+          format: float
+          description: The relevance score of the result.
+        raw_content:
+          type: [string, "null"]
+          description: The cleaned page content, if `include_raw_content` was requested.
+        favicon:
+          type: string
+          format: uri
+          description: The favicon URL, if `include_favicon` was requested.
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Images from this result, if `include_images` was requested.
+
+    # ----------------------------- Extract -----------------------------
+    ExtractRequest:
+      type: object
+      required: [urls]
+      properties:
+        urls:
+          description: A single URL or a list of URLs (max 20) to extract content from.
+          oneOf:
+            - type: string
+              format: uri
+            - type: array
+              maxItems: 20
+              items:
+                type: string
+                format: uri
+        query:
+          type: string
+          description: User intent used to rerank extracted content chunks by relevance.
+        chunks_per_source:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 3
+          description: Maximum relevant chunks per source. Only available when `query` is set.
+        extract_depth:
+          type: string
+          enum: [basic, advanced]
+          default: basic
+          description: >-
+            Extraction level. `advanced` retrieves more data, including tables
+            and embedded content.
+        include_images:
+          type: boolean
+          default: false
+          description: Include a list of extracted image URLs in the response.
+        include_favicon:
+          type: boolean
+          default: false
+          description: Include the favicon URL for each result.
+        format:
+          type: string
+          enum: [markdown, text]
+          default: markdown
+          description: The format of the extracted content.
+        timeout:
+          type: number
+          format: float
+          minimum: 1.0
+          maximum: 60.0
+          description: >-
+            Maximum time in seconds to wait for extraction. Defaults to 10s for
+            `basic` and 30s for `advanced`.
+        include_usage:
+          type: boolean
+          default: false
+          description: Include credit usage information in the response.
+
+    ExtractResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExtractResult'
+          description: Extracted content from the provided URLs.
+        failed_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailedResult'
+          description: URLs that could not be processed.
+        response_time:
+          type: number
+          format: float
+          description: Time in seconds it took to complete the request.
+        usage:
+          $ref: '#/components/schemas/Usage'
+        request_id:
+          type: string
+          description: A unique request identifier you can share with customer support.
+
+    ExtractResult:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The source URL.
+        raw_content:
+          type: string
+          description: >-
+            The full extracted page content. When `query` is provided, contains
+            the top-ranked chunks joined by `[...]`.
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: Extracted image URLs, if `include_images` was requested.
+        favicon:
+          type: string
+          format: uri
+          description: The favicon URL, if `include_favicon` was requested.
+
+    FailedResult:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The URL that failed.
+        error:
+          type: string
+          description: A description explaining the failure.
+
+    # ----------------------------- Crawl -----------------------------
+    CrawlRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The root URL to begin the crawl.
+        instructions:
+          type: [string, "null"]
+          default: null
+          description: >-
+            Natural language instructions for the crawler. Increases cost to 2
+            credits per 10 successful pages.
+        chunks_per_source:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 3
+          description: Maximum relevant chunks returned per source. Only available with `instructions`.
+        max_depth:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 1
+          description: Max depth of the crawl — how far from the base URL the crawler can explore.
+        max_breadth:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 20
+          description: Max number of links to follow per level of the tree.
+        limit:
+          type: integer
+          minimum: 1
+          default: 50
+          description: Total number of links the crawler will process before stopping.
+        select_paths:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to select only URLs with specific path patterns.
+        select_domains:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to restrict crawling to specific domains or subdomains.
+        exclude_paths:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to exclude URLs with specific path patterns.
+        exclude_domains:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to exclude specific domains from crawling.
+        allow_external:
+          type: boolean
+          default: true
+          description: Whether to include external domain links in the final results.
+        include_images:
+          type: boolean
+          default: false
+          description: Whether to include images in the crawl results.
+        extract_depth:
+          type: string
+          enum: [basic, advanced]
+          default: basic
+          description: >-
+            Extraction quality level. `basic` costs 1 credit per 5 extractions;
+            `advanced` costs 2 credits per 5.
+        format:
+          type: string
+          enum: [markdown, text]
+          default: markdown
+          description: Content format of extracted pages. `text` may increase latency.
+        include_favicon:
+          type: boolean
+          default: false
+          description: Whether to include the favicon URL for each result.
+        timeout:
+          type: number
+          minimum: 10
+          maximum: 150
+          default: 150
+          description: Maximum time in seconds before timeout.
+        include_usage:
+          type: boolean
+          default: false
+          description: Whether to include credit usage information in the response.
+
+    CrawlResponse:
+      type: object
+      properties:
+        base_url:
+          type: string
+          description: The base URL that was crawled.
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrawlResult'
+          description: A list of extracted content from the crawled URLs.
+        response_time:
+          type: number
+          format: float
+          description: Time in seconds it took to complete the request.
+        usage:
+          $ref: '#/components/schemas/Usage'
+        request_id:
+          type: string
+          description: A unique request identifier you can share with customer support.
+
+    CrawlResult:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The URL that was crawled.
+        raw_content:
+          type: string
+          description: >-
+            The full content extracted from the page. When `instructions` are
+            provided, contains the top-ranked chunks joined by `[...]`.
+        favicon:
+          type: string
+          format: uri
+          description: The favicon URL, if `include_favicon` was requested.
+
+    # ----------------------------- Map -----------------------------
+    MapRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The root URL to begin the mapping.
+        instructions:
+          type: [string, "null"]
+          default: null
+          description: >-
+            Natural language guidance for the crawler. Increases cost to 2
+            credits per 10 successful pages.
+        max_depth:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 1
+          description: Max depth of the mapping.
+        max_breadth:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 20
+          description: Max number of links to follow per level of the tree.
+        limit:
+          type: integer
+          minimum: 1
+          default: 50
+          description: Total number of links the crawler will process before stopping.
+        select_paths:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to select only URLs with specific path patterns.
+        select_domains:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to restrict mapping to specific domains or subdomains.
+        exclude_paths:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to exclude URLs with specific path patterns.
+        exclude_domains:
+          type: [array, "null"]
+          default: null
+          items:
+            type: string
+          description: Regex patterns to exclude specific domains from mapping.
+        allow_external:
+          type: boolean
+          default: true
+          description: Whether to include external domain links in the results.
+        timeout:
+          type: number
+          format: float
+          minimum: 10
+          maximum: 150
+          default: 150
+          description: Maximum time in seconds to wait.
+        include_usage:
+          type: boolean
+          default: false
+          description: Whether to include credit usage information in the response.
+
+    MapResponse:
+      type: object
+      properties:
+        base_url:
+          type: string
+          description: The mapped starting URL.
+        results:
+          type: array
+          items:
+            type: string
+            format: uri
+          description: A list of URLs that were discovered during mapping.
+        response_time:
+          type: number
+          format: float
+          description: Time in seconds it took to complete the request.
+        usage:
+          $ref: '#/components/schemas/Usage'
+        request_id:
+          type: string
+          description: A unique request identifier you can share with customer support.
+
+    # ----------------------------- Research -----------------------------
+    ResearchRequest:
+      type: object
+      required: [input]
+      properties:
+        input:
+          type: string
+          description: The research task or question to investigate.
+        model:
+          type: string
+          enum: [mini, pro, auto]
+          default: auto
+          description: >-
+            Research agent model. `mini` is targeted and efficient; `pro` is
+            comprehensive; `auto` selects automatically.
+        stream:
+          type: boolean
+          default: false
+          description: Whether to stream the research results as Server-Sent Events.
+        output_schema:
+          type: [object, "null"]
+          default: null
+          description: >-
+            JSON Schema defining the structure of the output. Requires a
+            `properties` field and an optional `required` field.
+          additionalProperties: true
+        citation_format:
+          type: string
+          enum: [numbered, mla, apa, chicago]
+          default: numbered
+          description: The citation style used in the report.
+        include_domains:
+          type: array
+          maxItems: 20
+          default: []
+          items:
+            type: string
+          description: >-
+            Soft preference for sources. The agent prioritizes but is not limited
+            to these domains.
+        exclude_domains:
+          type: array
+          maxItems: 20
+          default: []
+          items:
+            type: string
+          description: Hard blocklist of domains and subdomains to avoid.
+        output_length:
+          type: string
+          enum: [short, standard, long]
+          default: standard
+          description: Target size of the response.
+        files:
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/ResearchFile'
+          description: >-
+            Up to 5 files (.txt, .md, .json) to include as context. Max 80,000
+            words per file and 80,000 words combined.
+
+    ResearchFile:
+      type: object
+      required: [name, data]
+      properties:
+        name:
+          type: string
+          description: The filename, including its extension.
+        data:
+          type: string
+          description: The base64-encoded file contents.
+        type:
+          type: string
+          default: base64
+          description: The encoding type of the file data.
+
+    ResearchTaskCreated:
+      type: object
+      properties:
+        request_id:
+          type: string
+          description: A unique identifier for the research task.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the research task was created (ISO 8601).
+        status:
+          type: string
+          description: The current status of the task.
+          example: pending
+        input:
+          type: string
+          description: The research question submitted.
+        model:
+          type: string
+          description: The model used by the research agent.
+        response_time:
+          type: number
+          format: float
+          description: Processing time in seconds.
+
+    ResearchTaskCompleted:
+      type: object
+      properties:
+        request_id:
+          type: string
+          description: The task identifier.
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the task was created (ISO 8601).
+        status:
+          type: string
+          enum: [completed]
+          description: The task status.
+        content:
+          description: >-
+            The research report content. A string, or a structured object when
+            `output_schema` was provided.
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResearchSource'
+          description: The list of sources used in the research.
+        response_time:
+          type: integer
+          description: Seconds to complete the request.
+
+    ResearchTaskFailed:
+      type: object
+      properties:
+        request_id:
+          type: string
+          description: The task identifier.
+        status:
+          type: string
+          enum: [failed]
+          description: The task status.
+        response_time:
+          type: integer
+          description: Seconds elapsed.
+
+    ResearchTaskPending:
+      type: object
+      properties:
+        request_id:
+          type: string
+          description: The task identifier.
+        status:
+          type: string
+          enum: [pending, in_progress]
+          description: The current status of the task.
+        response_time:
+          type: integer
+          description: Seconds elapsed.
+
+    ResearchSource:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Title or name of the source.
+        url:
+          type: string
+          format: uri
+          description: URL of the source.
+        favicon:
+          type: string
+          format: uri
+          description: URL to the source's favicon.
+
+    # ----------------------------- Usage -----------------------------
+    UsageResponse:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/KeyUsage'
+        account:
+          $ref: '#/components/schemas/AccountUsage'
+
+    KeyUsage:
+      type: object
+      properties:
+        usage:
+          type: integer
+          description: Total credits used by this API key.
+        limit:
+          type: [integer, "null"]
+          description: The credit limit for this key, or null if unlimited.
+        search_usage:
+          type: integer
+          description: Credits used by search requests.
+        extract_usage:
+          type: integer
+          description: Credits used by extract requests.
+        crawl_usage:
+          type: integer
+          description: Credits used by crawl requests.
+        map_usage:
+          type: integer
+          description: Credits used by map requests.
+        research_usage:
+          type: integer
+          description: Credits used by research requests.
+
+    AccountUsage:
+      type: object
+      properties:
+        current_plan:
+          type: string
+          description: The account's current plan.
+        plan_usage:
+          type: integer
+          description: Credits used against the plan allowance.
+        plan_limit:
+          type: integer
+          description: The plan credit limit.
+        paygo_usage:
+          type: integer
+          description: Credits used under pay-as-you-go.
+        paygo_limit:
+          type: integer
+          description: The pay-as-you-go credit limit.
+        search_usage:
+          type: integer
+          description: Account-wide credits used by search requests.
+        extract_usage:
+          type: integer
+          description: Account-wide credits used by extract requests.
+        crawl_usage:
+          type: integer
+          description: Account-wide credits used by crawl requests.
+        map_usage:
+          type: integer
+          description: Account-wide credits used by map requests.
+        research_usage:
+          type: integer
+          description: Account-wide credits used by research requests.
+
+    # ----------------------------- Shared -----------------------------
+    Usage:
+      type: object
+      description: Credit usage details, included when `include_usage` is true.
+      properties:
+        credits:
+          type: integer
+          description: The number of credits consumed by the request.
+      additionalProperties: true
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: object
+          properties:
+            error:
+              type: string
+              description: A human-readable description of the error.
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "Invalid topic. Must be 'general' or 'news'"
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "Unauthorized: missing or invalid API key."
+    Forbidden:
+      description: The requested URL is not supported.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "URL is not supported."
+    NotFound:
+      description: The requested resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "Research task does not exist."
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "Your request has been blocked due to excessive requests. Please reduce the rate of requests."
+    PlanLimitExceeded:
+      description: The request exceeds the plan's usage limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "This request exceeds your plan's usage limit."
+    PayGoLimitExceeded:
+      description: The request exceeds the pay-as-you-go limit.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "This request exceeds the pay-as-you-go limit."
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            detail:
+              error: "Internal Server Error"
