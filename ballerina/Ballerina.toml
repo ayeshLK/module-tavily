@@ -1,12 +1,13 @@
 [package]
 org = "ayesha"
 name = "tavily"
-version = "0.5.1"
+version = "0.5.2"
 distribution = "2201.13.0"
 keywords = ["ai", "search", "web-search", "research"]
 license = ["Apache-2.0"]
 icon = "icon.png"
 readme = "Package.md"
+repository="https://github.com/ayeshLK/module-tavily"
 
 [build-options]
 observabilityIncluded = true
