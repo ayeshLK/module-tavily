@@ -7,6 +7,7 @@ keywords = ["ai", "search", "web-search", "research"]
 license = ["Apache-2.0"]
 icon = "icon.png"
 readme = "Package.md"
+repository="https://github.com/ayeshLK/module-tavily"
 
 [build-options]
 observabilityIncluded = true
